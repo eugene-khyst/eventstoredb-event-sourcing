@@ -1,4 +1,4 @@
-# Event Sourcing with Kafka and ksqlDB
+# Event Sourcing with EventStoreDB
 
 * [Introduction](#0b79795d3efc95b9976c7c5b933afce2)
 * [Example Domain](#8753dff3c2879207fa06ef1844b1ea4d)
@@ -25,6 +25,11 @@ EventStoreDB is the database for Event Sourcing.
 This repository provides a sample of event sourced system that uses EventStoreDB as event store.
 
 ![EventStoreDB Logo](img/eventstoredb-logo.png)
+
+See also
+
+* [Event Sourcing with Kafka and ksqlDB](https://github.com/evgeniy-khist/ksqldb-event-souring)
+* [Event Sourcing with PostgreSQL](https://github.com/evgeniy-khist/postgresql-event-sourcing)
 
 ## <a name="8753dff3c2879207fa06ef1844b1ea4d"></a>Example Domain
 
