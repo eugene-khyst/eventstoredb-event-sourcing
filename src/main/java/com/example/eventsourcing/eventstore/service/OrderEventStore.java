@@ -50,7 +50,7 @@ public class OrderEventStore {
   @SneakyThrows
   public long append(Event event, long expectedRevision) {
     Objects.requireNonNull(event);
-    log.debug("Appending event with expectedRevision {} {}", expectedRevision, event);
+    log.debug("Appending event with expected revision {} {}", expectedRevision, event);
     EventData eventData =
         EventData.builderAsBinary(event.getEventType(), jsonSerde.serialize(event)).build();
     AppendToStreamOptions options =

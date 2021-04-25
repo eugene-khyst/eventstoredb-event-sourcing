@@ -14,6 +14,7 @@
     * [Loading current state](#323effe18de24bcc666f161931c903f3)
     * [Subscribe to all events by aggregate type](#784ff5dca3b046266edf61637822bbff)
     * [Checkpoints](#0b584912c4fa746206884e080303ed49)
+    * [Drawbacks](#0cfc0523189294ac086e11c8e286ba2d)
 * [Why EventStoreDB?](#16d24f5a8e4ee0afcbe6b08f6075a5b5)
 * [How to Run the Sample?](#53af957fc9dc9f7083531a00fe3f364e)
 
@@ -117,6 +118,22 @@ TBD
 ### <a name="0b584912c4fa746206884e080303ed49"></a>Checkpoints
 
 TBD
+
+### <a name="0cfc0523189294ac086e11c8e286ba2d"></a>Drawbacks
+
+The main aim of Pinned consumer strategy is to decrease the likelihood of concurrency and ordering
+issues while maintaining load balancing. **This is not a guarantee, and you should handle the usual
+ordering and concurrency issues.**
+
+Consumers of integration events should be idempotent and filter duplicates and out of order
+integration events.
+
+If your system can't accept even small chance of duplicates or unordering, then persistent
+subscription listener must be extracted into a separate microservice and run in a single
+replica (`.spec.replicas=1` in Kubernetes). This microservice must not be updated using
+RollingUpdate Deployment strategy. Recreate Deployment strategy must be used instead
+(`.spec.strategy.type=Recreate` in Kubernetes) when all existing Pods are killed before new ones are
+created.
 
 ## <a name="16d24f5a8e4ee0afcbe6b08f6075a5b5"></a>Why EventStoreDB?
 
@@ -284,4 +301,6 @@ The `test.sh` script has the following instructions:
     dfc9cc1f-ad69-4977-a271-595b5c9a7fcd	{"order_id":"dfc9cc1f-ad69-4977-a271-595b5c9a7fcd","event_type":"OrderAcceptedEvent","event_timestamp":1619353112421,"revision":1,"status":"ACCEPTED","rider_id":"63770803-38f4-4594-aec2-4c74918f7165","price":123.45,"route":[{"ADDRESS":"Київ, вулиця Полярна, 17А","LAT":50.51980052414157,"LON":30.467197278948536},{"ADDRESS":"Київ, вулиця Новокостянтинівська, 18В","LAT":50.48509161169076,"LON":30.485170724431292}],"driver_id":"2c068a1a-9263-433f-a70b-067d51b98378"}
     dfc9cc1f-ad69-4977-a271-595b5c9a7fcd	{"order_id":"dfc9cc1f-ad69-4977-a271-595b5c9a7fcd","event_type":"OrderCompletedEvent","event_timestamp":1619353113671,"revision":2,"status":"COMPLETED","rider_id":"63770803-38f4-4594-aec2-4c74918f7165","price":123.45,"route":[{"ADDRESS":"Київ, вулиця Полярна, 17А","LAT":50.51980052414157,"LON":30.467197278948536},{"ADDRESS":"Київ, вулиця Новокостянтинівська, 18В","LAT":50.48509161169076,"LON":30.485170724431292}],"driver_id":"2c068a1a-9263-433f-a70b-067d51b98378"}
     ```
+
+
 

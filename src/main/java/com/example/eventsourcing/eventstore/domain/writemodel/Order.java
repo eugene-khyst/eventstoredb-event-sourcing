@@ -48,15 +48,23 @@ public class Order extends Aggregate {
       throw new Error(String.format("Order in status %s can't be placed", status));
     }
     applyChange(
-        new OrderPlacedEvent(
-            aggregateId, command.getRiderId(), command.getPrice(), command.getRoute()));
+        OrderPlacedEvent.builder()
+            .aggregateId(aggregateId)
+            .riderId(command.getRiderId())
+            .price(command.getPrice())
+            .route(command.getRoute())
+            .build());
   }
 
   public void process(AcceptOrderCommand command) {
     if (status == OrderStatus.CANCELLED) {
       throw new Error(String.format("Order in status %s can't be accepted", status));
     }
-    applyChange(new OrderAcceptedEvent(aggregateId, command.getDriverId()));
+    applyChange(
+        OrderAcceptedEvent.builder()
+            .aggregateId(aggregateId)
+            .driverId(command.getDriverId())
+            .build());
   }
 
   public void process(CompleteOrderCommand command) {
