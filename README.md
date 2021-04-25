@@ -285,7 +285,6 @@ The `test.sh` script has the following instructions:
 9. Try to cancel a completed order to simulate business rule violation.
     ```bash
     curl -s -X PATCH http://localhost:8080/orders/$ORDER_ID -d '{"status":"CANCELLED","revision":2}' -H 'Content-Type: application/json' | jq
-    sleep 1s
     ```
     ```json
     {
