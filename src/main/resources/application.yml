@@ -1,0 +1,18 @@
+spring:
+  jpa:
+    open-in-view: true
+    hibernate:
+      ddl-auto: update
+
+  jackson:
+    default-property-inclusion: non_null
+
+  kafka:
+    producer:
+      properties:
+        max:
+          in:
+            flight:
+              requests:
+                per:
+                  connection: 1
