@@ -160,7 +160,7 @@ The `test.sh` script has the following instructions:
     ```
     ```json
     {
-      "id": "9ac946d6-ef9b-4efb-af6e-25e19769dfd8",
+      "id": "dfc9cc1f-ad69-4977-a271-595b5c9a7fcd",
       "revision": 0,
       "status": "PLACED",
       "riderId": "63770803-38f4-4594-aec2-4c74918f7165",
@@ -177,7 +177,7 @@ The `test.sh` script has the following instructions:
           "lon": 30.485170724431292
         }
       ],
-      "placedDate": "2021-04-25T11:45:12.017431Z"
+      "placedDate": "2021-04-25T12:18:30.891914Z"
     }
     ```
 3. Accept the order.
@@ -191,7 +191,7 @@ The `test.sh` script has the following instructions:
     ```
     ```json
     {
-      "id": "9ac946d6-ef9b-4efb-af6e-25e19769dfd8",
+      "id": "dfc9cc1f-ad69-4977-a271-595b5c9a7fcd",
       "revision": 1,
       "status": "ACCEPTED",
       "riderId": "63770803-38f4-4594-aec2-4c74918f7165",
@@ -209,8 +209,8 @@ The `test.sh` script has the following instructions:
         }
       ],
       "driverId": "2c068a1a-9263-433f-a70b-067d51b98378",
-      "placedDate": "2021-04-25T11:45:12.017431Z",
-      "acceptedDate": "2021-04-25T11:45:13.504275Z"
+      "placedDate": "2021-04-25T12:18:30.891914Z",
+      "acceptedDate": "2021-04-25T12:18:32.421801Z"
     }
     ```
 5. Try to cancel an outdated version of the order to simulate lost update.
@@ -231,18 +231,18 @@ The `test.sh` script has the following instructions:
       "error": "Actual revision 1 doesn't match expected revision 2"
     }
     ```
-9. Complete the order.
+7. Complete the order.
     ```bash
     curl -s -X PATCH http://localhost:8080/orders/$ORDER_ID -d '{"status":"COMPLETED","revision":1}' -H 'Content-Type: application/json'
     sleep 1s
     ```
-10. Get the completed order.
+8. Get the completed order.
     ```bash
     curl -s -X GET http://localhost:8080/orders/$ORDER_ID | jq
     ```
     ```json
     {
-      "id": "9ac946d6-ef9b-4efb-af6e-25e19769dfd8",
+      "id": "dfc9cc1f-ad69-4977-a271-595b5c9a7fcd",
       "revision": 2,
       "status": "COMPLETED",
       "riderId": "63770803-38f4-4594-aec2-4c74918f7165",
@@ -260,12 +260,12 @@ The `test.sh` script has the following instructions:
         }
       ],
       "driverId": "2c068a1a-9263-433f-a70b-067d51b98378",
-      "placedDate": "2021-04-25T11:45:12.017431Z",
-      "acceptedDate": "2021-04-25T11:45:13.504275Z",
-      "completedDate": "2021-04-25T11:45:16.808577Z"
+      "placedDate": "2021-04-25T12:18:30.891914Z",
+      "acceptedDate": "2021-04-25T12:18:32.421801Z",
+      "completedDate": "2021-04-25T12:18:33.671775Z"
     }
     ```
-11. Try to cancel a completed order to simulate business rule violation.
+9. Try to cancel a completed order to simulate business rule violation.
     ```bash
     curl -s -X PATCH http://localhost:8080/orders/$ORDER_ID -d '{"status":"CANCELLED","revision":2}' -H 'Content-Type: application/json' | jq
     sleep 1s
@@ -275,13 +275,13 @@ The `test.sh` script has the following instructions:
       "error": "Order in status COMPLETED can't be cancelled"
     }
     ```
-13. Print integration events.
+10. Print integration events.
     ```bash
     docker exec -it kafka /bin/kafka-console-consumer --bootstrap-server localhost:9092 --topic order-integration-events --from-beginning --property print.key=true --timeout-ms 3000
     ```
     ```
-    827e3a63-d252-415f-af60-94c5a36bfcd6	{"order_id":"827e3a63-d252-415f-af60-94c5a36bfcd6","event_type":"OrderPlacedEvent","event_timestamp":1619191582543,"version":1,"status":"PLACED","rider_id":"63770803-38f4-4594-aec2-4c74918f7165","price":123.45,"route":[{"ADDRESS":"Київ, вулиця Полярна, 17А","LAT":50.51980052414157,"LON":30.467197278948536},{"ADDRESS":"Київ, вулиця Новокостянтинівська, 18В","LAT":50.48509161169076,"LON":30.485170724431292}]}
-    827e3a63-d252-415f-af60-94c5a36bfcd6	{"order_id":"827e3a63-d252-415f-af60-94c5a36bfcd6","event_type":"OrderAcceptedEvent","event_timestamp":1619191583542,"version":2,"status":"ACCEPTED","rider_id":"63770803-38f4-4594-aec2-4c74918f7165","price":123.45,"route":[{"ADDRESS":"Київ, вулиця Полярна, 17А","LAT":50.51980052414157,"LON":30.467197278948536},{"ADDRESS":"Київ, вулиця Новокостянтинівська, 18В","LAT":50.48509161169076,"LON":30.485170724431292}],"driver_id":"2c068a1a-9263-433f-a70b-067d51b98378"}
-    827e3a63-d252-415f-af60-94c5a36bfcd6	{"order_id":"827e3a63-d252-415f-af60-94c5a36bfcd6","event_type":"OrderCompletedEvent","event_timestamp":1619191586791,"version":5,"status":"COMPLETED","rider_id":"63770803-38f4-4594-aec2-4c74918f7165","price":123.45,"route":[{"ADDRESS":"Київ, вулиця Полярна, 17А","LAT":50.51980052414157,"LON":30.467197278948536},{"ADDRESS":"Київ, вулиця Новокостянтинівська, 18В","LAT":50.48509161169076,"LON":30.485170724431292}],"driver_id":"2c068a1a-9263-433f-a70b-067d51b98378"}
+    dfc9cc1f-ad69-4977-a271-595b5c9a7fcd	{"order_id":"dfc9cc1f-ad69-4977-a271-595b5c9a7fcd","event_type":"OrderPlacedEvent","event_timestamp":1619353110891,"revision":0,"status":"PLACED","rider_id":"63770803-38f4-4594-aec2-4c74918f7165","price":123.45,"route":[{"ADDRESS":"Київ, вулиця Полярна, 17А","LAT":50.51980052414157,"LON":30.467197278948536},{"ADDRESS":"Київ, вулиця Новокостянтинівська, 18В","LAT":50.48509161169076,"LON":30.485170724431292}]}
+    dfc9cc1f-ad69-4977-a271-595b5c9a7fcd	{"order_id":"dfc9cc1f-ad69-4977-a271-595b5c9a7fcd","event_type":"OrderAcceptedEvent","event_timestamp":1619353112421,"revision":1,"status":"ACCEPTED","rider_id":"63770803-38f4-4594-aec2-4c74918f7165","price":123.45,"route":[{"ADDRESS":"Київ, вулиця Полярна, 17А","LAT":50.51980052414157,"LON":30.467197278948536},{"ADDRESS":"Київ, вулиця Новокостянтинівська, 18В","LAT":50.48509161169076,"LON":30.485170724431292}],"driver_id":"2c068a1a-9263-433f-a70b-067d51b98378"}
+    dfc9cc1f-ad69-4977-a271-595b5c9a7fcd	{"order_id":"dfc9cc1f-ad69-4977-a271-595b5c9a7fcd","event_type":"OrderCompletedEvent","event_timestamp":1619353113671,"revision":2,"status":"COMPLETED","rider_id":"63770803-38f4-4594-aec2-4c74918f7165","price":123.45,"route":[{"ADDRESS":"Київ, вулиця Полярна, 17А","LAT":50.51980052414157,"LON":30.467197278948536},{"ADDRESS":"Київ, вулиця Новокостянтинівська, 18В","LAT":50.48509161169076,"LON":30.485170724431292}],"driver_id":"2c068a1a-9263-433f-a70b-067d51b98378"}
     ```
 
