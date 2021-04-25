@@ -16,3 +16,8 @@ spring:
               requests:
                 per:
                   connection: 1
+
+eventstoredb:
+  persistent-subscription:
+    group: eventstoredb-event-sourcing-app
+    buffer-size: 32

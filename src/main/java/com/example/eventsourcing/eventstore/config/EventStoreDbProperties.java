@@ -11,8 +11,8 @@ public class EventStoreDbProperties {
 
   @Data
   public static class PersistentSubscription {
-    private String group = "eventstoredb-event-sourcing-app";
-    private int bufferSize = 32;
+    private String group;
+    private int bufferSize;
   }
 
   private String connectionString;
