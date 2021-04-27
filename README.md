@@ -6,7 +6,8 @@
     * [State-Oriented Persistence](#436b314e78fec59a76bad8b93b52ee75)
     * [Event Sourcing](#c4b3d1c8edab1825366ac1d541d8226f)
     * [CQRS](#b2cf9293622451d86574d2973398ca70)
-    * [Advantages of Event Sourcing and CQRS](#d8818c2c5ba0364540a49273f684b85c)
+    * [Advantages of CQRS](#cc00871be6276415cfb13eb24e97fe48)
+    * [Advantages of Event Sourcing](#845b7e034fb763fcdf57e9467c0a8707)
 * [Requirements for Event Store](#70b356f41293ace9df0d04cd8175ac35)
 * [Solution Architecture](#9f6302143996033ebb94d536b860acc3)
     * [Permanent Storage](#205928bf89c3012be2e11d1e5e7ad01f)
@@ -33,7 +34,8 @@ See also
 
 ## <a name="8753dff3c2879207fa06ef1844b1ea4d"></a>Example Domain
 
-The example domain is ride hailing.
+This sample uses heavily simplified ride hailing domain model inspired
+by [tech/uklon](https://careers.uklon.ua/) experience.
 
 * A rider can place an order for a ride along a route specifying a price.
 * A driver can accept and complete an order.
@@ -369,6 +371,8 @@ The `test.sh` script has the following instructions:
     dfc9cc1f-ad69-4977-a271-595b5c9a7fcd	{"order_id":"dfc9cc1f-ad69-4977-a271-595b5c9a7fcd","event_type":"OrderAcceptedEvent","event_timestamp":1619353112421,"revision":1,"status":"ACCEPTED","rider_id":"63770803-38f4-4594-aec2-4c74918f7165","price":123.45,"route":[{"ADDRESS":"Київ, вулиця Полярна, 17А","LAT":50.51980052414157,"LON":30.467197278948536},{"ADDRESS":"Київ, вулиця Новокостянтинівська, 18В","LAT":50.48509161169076,"LON":30.485170724431292}],"driver_id":"2c068a1a-9263-433f-a70b-067d51b98378"}
     dfc9cc1f-ad69-4977-a271-595b5c9a7fcd	{"order_id":"dfc9cc1f-ad69-4977-a271-595b5c9a7fcd","event_type":"OrderCompletedEvent","event_timestamp":1619353113671,"revision":2,"status":"COMPLETED","rider_id":"63770803-38f4-4594-aec2-4c74918f7165","price":123.45,"route":[{"ADDRESS":"Київ, вулиця Полярна, 17А","LAT":50.51980052414157,"LON":30.467197278948536},{"ADDRESS":"Київ, вулиця Новокостянтинівська, 18В","LAT":50.48509161169076,"LON":30.485170724431292}],"driver_id":"2c068a1a-9263-433f-a70b-067d51b98378"}
     ```
+
+
 
 
 
