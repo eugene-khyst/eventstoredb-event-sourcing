@@ -39,6 +39,10 @@ The example domain is ride hailing.
 * A driver can accept and complete an order.
 * An order can be cancelled before completion.
 
+![Domain use case diagram](img/domain-1.png)
+
+![Domain state diagram](img/domain-2.png)
+
 ## <a name="19025f75ca30ec4a46f55a6b9afdeba6"></a>Event Sourcing and CQRS 101
 
 ### <a name="436b314e78fec59a76bad8b93b52ee75"></a>State-Oriented Persistence
@@ -57,7 +61,25 @@ Whenever the state of an entity changes, a new event is appended to the list of 
 
 Current state of an entity can be restored by replaying all its events.
 
+Event sourcing is best suited for short-living entities with relatively small total number of
+event (like orders).
+
+Restoring the state of the short-living entity by replaying all its events doesn't have any
+performance impact. Thus, no optimizations for restoring state are required for short-living
+entities.
+
+For endlessly stored entities (like users or bank accounts) with thousands of events restoring state
+by replaying all events is not optimal and snapshotting should be considered.
+
+Snapshotting is an optimization technique where a snapshot of the aggregate's state is also saved,
+so an application can restore the current state of an aggregate from the snapshot instead of from
+scratch.
+
+![Snapshotting in event souring](img/event-sourcing-snapshotting.png)
+
 An entity in event sourcing is also referenced as an aggregate.
+
+A sequence of events for the same aggregate are also referenced as a stream.
 
 ### <a name="b2cf9293622451d86574d2973398ca70"></a>CQRS
 
@@ -69,7 +91,10 @@ A command generates zero or more events or results in an error.
 
 ![CQRS](img/cqrs-1.png)
 
-Event sourcing is usually used in conjunction with CQRS.
+CQRS is a self-sufficient architectural pattern and doesn't require event sourcing.
+
+Event sourcing is usually used in conjunction with CQRS. Event store is used as a write database and
+SQL or NoSQL database as a read database.
 
 ![CQRS](img/cqrs-2.png)
 
@@ -78,16 +103,18 @@ integration with other bounded contexts. Integration events representing the cur
 aggregate should be used for communication between bounded contexts instead of a raw event sourcing
 change events.
 
-### <a name="d8818c2c5ba0364540a49273f684b85c"></a>Advantages of Event Sourcing and CQRS
+### <a name="cc00871be6276415cfb13eb24e97fe48"></a>Advantages of CQRS
+
+* Independent scaling of the read and write databases.
+* Optimized data schema for the read database (e.g. the read databases can be denormalized).
+* Simpler queries (e.g. complex `JOIN` operations can be avoided).
+
+### <a name="845b7e034fb763fcdf57e9467c0a8707"></a>Advantages of Event Sourcing
 
 * Having a true history of the system (audit and traceability).
 * Ability to put the system in any prior state (e.g. for debugging).
 * Read-side projections can be created as needed (later) from events. It allows responding to future
   needs and new requirements.
-* Independent scaling. CQRS allows We can scale the read and write databases independently of each
-  other.
-* Optimized data schema for read database (e.g. the read databases can be denormalized).
-* Simpler queries (e.g. complex `JOIN` operations can be avoided).
 
 ## <a name="70b356f41293ace9df0d04cd8175ac35"></a>Requirements for Event Store
 
@@ -102,36 +129,72 @@ change events.
 
 ## <a name="9f6302143996033ebb94d536b860acc3"></a>Solution Architecture
 
-TBD
+EventStoreDB natively supports appending events, concurrency control, reading events, persistent
+subscriptions on events.
+
+The important part of the solution is EventStoreDB persistent subscriptions.
+
+Persistent subscriptions aim to deliver events in real-time to connected subscribers and are
+maintained by the server. Persistent subscriptions keep the last known position from where the
+subscription starts getting events on the server.
+
+Persistent subscription can be load-balanced and process events in parallel. In order for the server
+to load-balance subscribers, it uses the concept of consumer groups.
+
+There is Pinned consumer strategy designed to be used with an indexing projection such as the
+system `$by_category` projection.
+
+Event stream id is hashed to one of 1024 buckets assigned to individual clients. When a client
+disconnects it's buckets are assigned to other clients. When a client connects, it is assigned some
+of the existing buckets. This naively attempts to maintain a balanced workload.
+
+The main aim of Pinned consumer strategy is to decrease the likelihood of concurrency and ordering
+issues while maintaining load balancing. This is not a guarantee, and you should handle the usual
+ordering and concurrency issues.
+
+![EvenStoreDB persistent subscriptions](img/eventstoredb-persistent-subscription.png)
+
+All parts together look like this
+
+![EvenStoreDB event store](img/eventstoredb-event-store.png)
 
 ### <a name="205928bf89c3012be2e11d1e5e7ad01f"></a>Permanent Storage
 
-TBD
+EventStoreDB stores all data permanently be default.
 
 ### <a name="6eec4db0e612f3a70dab7d96c463e8f6"></a>Optimistic concurrency control
 
-TBD
+When appending events to a stream you can supply a stream revision to have optimisic concurrency
+control.
 
 ### <a name="323effe18de24bcc666f161931c903f3"></a>Loading current state
 
-TBD
+Events can be easily read from a stream.
 
 ### <a name="784ff5dca3b046266edf61637822bbff"></a>Subscribe to all events by aggregate type
 
-TBD
+EventStoreDB has a built-in system projection `$by_category` linking existing events from streams to
+a new stream with a `$ce-` prefix (a category) by splitting a stream id by a separator (`-` be
+default).
+
+For example events from the streams with IDs `order-123`, `order-124` and `order-125` will be linked
+to the stream `$ce-order`.
+
+You can subscribe to a `$ce-order` stream and receive notifications for changes in all order
+streams.
 
 ### <a name="0b584912c4fa746206884e080303ed49"></a>Checkpoints
 
-TBD
+Persistent subscriptions keep the last known position from where the subscription starts getting
+events on the server.
 
 ### <a name="0cfc0523189294ac086e11c8e286ba2d"></a>Drawbacks
 
-The main aim of Pinned consumer strategy is to decrease the likelihood of concurrency and ordering
-issues while maintaining load balancing. **This is not a guarantee, and you should handle the usual
-ordering and concurrency issues.**
+1. Pinned consumer strategy decreases the likelihood of concurrency and ordering issues while
+   maintaining load balancing. **This is not a guarantee, and you should handle the usual ordering
+   and concurrency issues.**
 
-Consumers of integration events should be idempotent and filter duplicates and out of order
-integration events.
+Consumers of events should be idempotent and filter duplicates and out of order integration events.
 
 If your system can't accept even small chance of duplicates or unordering, then persistent
 subscription listener must be extracted into a separate microservice and run in a single
@@ -142,7 +205,8 @@ created.
 
 ## <a name="16d24f5a8e4ee0afcbe6b08f6075a5b5"></a>Why EventStoreDB?
 
-TBD
+EventStoreDB was specifically designed as an event store for event sourcing. It supports only
+mandatory operations on events and thus is simple to use and high-performance.
 
 ## <a name="53af957fc9dc9f7083531a00fe3f364e"></a>How to Run the Sample?
 
