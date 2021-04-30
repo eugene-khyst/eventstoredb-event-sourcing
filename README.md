@@ -249,19 +249,79 @@ isn't lost in case of a drive failure or a node crashing.
 EventStoreDB uses a quorum-based replication model, in which a majority of nodes in the cluster must
 acknowledge that they committed a write to disk before acknowledging the write to the client. This
 means that to be able to tolerate the failure of `n` nodes, the cluster must be of size `(2n + 1)`.
-A three-database-node cluster can continue to accept writes if one node is unavailable. A
-five-database-node cluster can continue to accept writes if two nodes are unavailable, and so forth.
-
-For any cluster configuration, you first need to decide how many nodes you want, provision each node
-and set the cluster size option on each node.
+A cluster of tree nodes can continue to accept writes if one node is unavailable. A cluster of five
+nodes can continue to accept writes if two nodes are unavailable, and so forth.
 
 The cluster cannot be dynamically scaled. If you need to change the number of cluster nodes, the
 cluster size setting must be changed on all nodes before the new node can join.
 
 ### <a name="2b3ea8c2ac323f736480d2b3a6baf7e4"></a>Sharding
 
-EventStoreDB doesn't support sharding out of the box, but you can easily implement
-it by yourself.
+A shard is a horizontal partition of data in a database. Each shard is held on a separate database
+server instance, to spread load.
+
+The distribution of records/documents among the cluster's shards is determined by the shard key.
+
+EventStoreDB doesn't support sharding out of the box, but you can easily implement it by yourself.
+
+Finding all records/documents matching query predicates is hard when a table/collection is
+partitioned and stored in different shards. If a query doesn't have a predicate for a shard key then
+all shards have to be queried for partial results and then combined.
+
+EventStoreDB support only very simple operations: append event to a stream and read events from a
+stream. In other words, save and find events by a stream name.
+
+The two common options for sharding are partition by location (e.g. city, country, region) or by
+date (e.g. year). For example:
+
+* Or store streams from the USA in the dedicated US EventStoreDB instance and streams from the EU in
+  the dedicated EU EventStoreDB instance.
+* Store the recent streams (created in the current year) in the operational EventStoreDB instance
+  and the older streams in the "archive" EventStoreDB instance.
+
+Sharding with EventStoreDB can be implemented as follows:
+
+1. For each shard set up a separate EventStoreDB instance.
+2. For each EventStoreDB instance instantiate a client.
+3. Include a shard key into the stream name to determine what EventStoreDB client to use to reach to
+   corresponding shard, e.g. `order_2020-123`, `order_2021-124`, or `order_UA-123`, `order_GB-124`.
+
+```java
+public class OrderEventStore {
+
+  private final EventStoreDBClient clientUSA;
+  private final EventStoreDBClient clientEU;
+
+  // ...
+
+  public void append(Event event) {
+    // EventData eventData = ...
+    // AppendToStreamOptions options = ...
+    String country = event.getCountry();
+    getClient(country)
+        .appendToStream(toStreamName(country, event.getAggregateId()), options, eventData)
+        .get();
+  }
+
+  public List<Event> readEvents(UUID aggregateId, String country) {
+    ReadResult result = getClient(country).readStream(toStreamName(country, aggregateId)).get();
+    List<Event> events = new ArrayList<>();
+    for (ResolvedEvent resolvedEvent : result.getEvents()) {
+      // Event = ... 
+      events.add(event);
+    }
+    return events;
+  }
+
+  private String toStreamName(String country, UUID aggregateId) {
+    return "order_" + country + "-" + aggregateId;
+  }
+
+  private EventStoreDBClient getClient(String country) {
+    return "USA".equals(country) ? clientUSA : clientEU;
+  }
+}
+```
 
 ### <a name="0cfc0523189294ac086e11c8e286ba2d"></a>Drawbacks
 
