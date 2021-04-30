@@ -15,6 +15,9 @@
     * [Loading current state](#323effe18de24bcc666f161931c903f3)
     * [Subscribe to all events by aggregate type](#784ff5dca3b046266edf61637822bbff)
     * [Checkpoints](#0b584912c4fa746206884e080303ed49)
+    * [Snapshotting](#e8e27b68d6e2d74d28c14c40a36b9f63)
+    * [Clustering](#de3a31857992c01e9d9a1139971b66bc)
+    * [Sharding](#2b3ea8c2ac323f736480d2b3a6baf7e4)
     * [Drawbacks](#0cfc0523189294ac086e11c8e286ba2d)
 * [Why EventStoreDB?](#16d24f5a8e4ee0afcbe6b08f6075a5b5)
 * [How to Run the Sample?](#53af957fc9dc9f7083531a00fe3f364e)
@@ -190,11 +193,81 @@ streams.
 Persistent subscriptions keep the last known position from where the subscription starts getting
 events on the server.
 
+### <a name="e8e27b68d6e2d74d28c14c40a36b9f63"></a>Snapshotting
+
+Snapshotting is important for long-living or endlessly stored aggregates as we do not want to replay
+all the events (potentially thousands) to restore an aggregate state every time.
+
+EventStoreDB doesn't provide snapshotting functionality out of the box, but you can easily implement
+it by yourself.
+
+On every *nth* event append an aggregate state (snapshot) to a separate stream specifying the
+revision.
+
+To restore an aggregate state:
+
+1. first read the latest value of the snapshot stream (backwards),
+2. then read forward from the original stream from the revision the snapshot points to.
+
+For example:
+
+1. Events are appended to the stream `order-123`
+2. Every *nth* event a snapshot is appended to the stream `order_snapshot-123` (use `_` instead
+   of `-` in the suffix `_snapshot`, `-` is used by the system
+   projection [`$by_category`](#784ff5dca3b046266edf61637822bbff))
+3. Read backwards a single result form `order_snapshot-123` stream
+    ```java
+    ReadStreamOptions options = ReadStreamOptions.get()
+        .backwards()
+        .fromEnd();
+   
+    ReadResult result = client.readStream("order_snapshot-123", 1 /*maxCount*/, options)
+        .get();
+   
+    List<ResolvedEvent> events = result.getEvents();
+    ```
+4. Read forwards from *nth* revision form `order-123` stream
+    ```java
+    ReadStreamOptions options = ReadStreamOptions.get()
+        .forwards()
+        .fromRevision(n);
+
+    ReadResult result = client.readStream("order-123", options)
+        .get();
+    
+    List<ResolvedEvent> events = result.getEvents();
+    ```
+
+### <a name="de3a31857992c01e9d9a1139971b66bc"></a>Clustering
+
+EventStoreDB allows you to run more than one node as a cluster to achieve high availability.
+
+EventStoreDB clusters follow a "shared nothing" philosophy, meaning that clustering requires no
+shared disks for clustering to work. Instead, several database nodes store your data to ensure it
+isn't lost in case of a drive failure or a node crashing.
+
+EventStoreDB uses a quorum-based replication model, in which a majority of nodes in the cluster must
+acknowledge that they committed a write to disk before acknowledging the write to the client. This
+means that to be able to tolerate the failure of `n` nodes, the cluster must be of size `(2n + 1)`.
+A three-database-node cluster can continue to accept writes if one node is unavailable. A
+five-database-node cluster can continue to accept writes if two nodes are unavailable, and so forth.
+
+For any cluster configuration, you first need to decide how many nodes you want, provision each node
+and set the cluster size option on each node.
+
+The cluster cannot be dynamically scaled. If you need to change the number of cluster nodes, the
+cluster size setting must be changed on all nodes before the new node can join.
+
+### <a name="2b3ea8c2ac323f736480d2b3a6baf7e4"></a>Sharding
+
+EventStoreDB doesn't support sharding out of the box, but you can easily implement
+it by yourself.
+
 ### <a name="0cfc0523189294ac086e11c8e286ba2d"></a>Drawbacks
 
-1. Pinned consumer strategy decreases the likelihood of concurrency and ordering issues while
-   maintaining load balancing. **This is not a guarantee, and you should handle the usual ordering
-   and concurrency issues.**
+Pinned consumer strategy decreases the likelihood of concurrency and ordering issues while
+maintaining load balancing. **This is not a guarantee, and you should handle the usual ordering and
+concurrency issues.**
 
 Consumers of events should be idempotent and filter duplicates and out of order integration events.
 
@@ -212,7 +285,7 @@ mandatory operations on events and thus is simple to use and high-performance.
 
 ## <a name="53af957fc9dc9f7083531a00fe3f364e"></a>How to Run the Sample?
 
-1. Download & installOpenJDK 11 (LTS) at [AdoptOpenJDK](https://adoptopenjdk.net/).
+1. Download & install OpenJDK 11 (LTS) at [AdoptOpenJDK](https://adoptopenjdk.net/).
 
 2. Download and install [Docker](https://docs.docker.com/engine/install/)
    and [Docker Compose](https://docs.docker.com/compose/install/).
@@ -371,6 +444,7 @@ The `test.sh` script has the following instructions:
     dfc9cc1f-ad69-4977-a271-595b5c9a7fcd	{"order_id":"dfc9cc1f-ad69-4977-a271-595b5c9a7fcd","event_type":"OrderAcceptedEvent","event_timestamp":1619353112421,"revision":1,"status":"ACCEPTED","rider_id":"63770803-38f4-4594-aec2-4c74918f7165","price":123.45,"route":[{"ADDRESS":"Київ, вулиця Полярна, 17А","LAT":50.51980052414157,"LON":30.467197278948536},{"ADDRESS":"Київ, вулиця Новокостянтинівська, 18В","LAT":50.48509161169076,"LON":30.485170724431292}],"driver_id":"2c068a1a-9263-433f-a70b-067d51b98378"}
     dfc9cc1f-ad69-4977-a271-595b5c9a7fcd	{"order_id":"dfc9cc1f-ad69-4977-a271-595b5c9a7fcd","event_type":"OrderCompletedEvent","event_timestamp":1619353113671,"revision":2,"status":"COMPLETED","rider_id":"63770803-38f4-4594-aec2-4c74918f7165","price":123.45,"route":[{"ADDRESS":"Київ, вулиця Полярна, 17А","LAT":50.51980052414157,"LON":30.467197278948536},{"ADDRESS":"Київ, вулиця Новокостянтинівська, 18В","LAT":50.48509161169076,"LON":30.485170724431292}],"driver_id":"2c068a1a-9263-433f-a70b-067d51b98378"}
     ```
+
 
 
 
