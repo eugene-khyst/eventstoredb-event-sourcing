@@ -329,10 +329,19 @@ Pinned consumer strategy decreases the likelihood of concurrency and ordering is
 maintaining load balancing. **This is not a guarantee, and you should handle the usual ordering and
 concurrency issues.**
 
+Integration events are delivered with at-least-once delivery guarantee. The exactly-once delivery
+guarantee is hard to achieve due to a dual-write. A dual-write describes a situation when you need
+to atomically update the database and publish messages and two-phase commit (2PC) is not an option.
+
 Consumers of events should be idempotent and filter duplicates and out of order integration events.
 
-If your system can't accept even small chance of duplicates or unordering, then persistent
-subscription listener must be extracted into a separate microservice and run in a single
+For assured ordering use catch-up subscriptions (simple subscriptions) instead of persistent
+subscriptions. Catch-up subscriptions serve the purpose of receiving events from a stream for a
+single subscriber. Subscribers for catch-up subscriptions get events in order and, therefore, are
+able to process events sequentially. There is nothing on the server that gets stored for such a
+subscriber. You have to keep the last known position for the catch-up subscription yourself.
+
+A catch-up subscription listener must be extracted into a separate microservice and run in a single
 replica (`.spec.replicas=1` in Kubernetes). This microservice must not be updated using
 RollingUpdate Deployment strategy. Recreate Deployment strategy must be used instead
 (`.spec.strategy.type=Recreate` in Kubernetes) when all existing Pods are killed before new ones are
