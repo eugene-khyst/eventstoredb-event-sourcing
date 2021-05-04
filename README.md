@@ -307,10 +307,22 @@ public class OrderEventStore {
     ReadResult result = getClient(country).readStream(toStreamName(country, aggregateId)).get();
     List<Event> events = new ArrayList<>();
     for (ResolvedEvent resolvedEvent : result.getEvents()) {
-      // Event = ... 
+      // Event event = ... 
       events.add(event);
     }
     return events;
+  }
+
+  public void subscribe(String country, Consumer<Event> consumer) {
+    SubscriptionListener listener = new SubscriptionListener() {
+      @Override
+      public void onEvent(Subscription subscription, ResolvedEvent resolvedEvent) {
+        // Event event = ...
+        consumer.accept(event);
+      }
+    };
+    // The streams $ce-order_COUNTRY are created by the system projection $by_category
+    client.subscribeToStream("$ce-order_" + country, listener);
   }
 
   private String toStreamName(String country, UUID aggregateId) {
