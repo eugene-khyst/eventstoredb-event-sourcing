@@ -345,7 +345,7 @@ Integration events are delivered with at-least-once delivery guarantee. The exac
 guarantee is hard to achieve due to a dual-write. A dual-write describes a situation when you need
 to atomically update the database and publish messages and two-phase commit (2PC) is not an option.
 
-Consumers of events should be idempotent and filter duplicates and out of order integration events.
+Consumers of events should be idempotent and filter duplicates and unordered integration events.
 
 For assured ordering use catch-up subscriptions (simple subscriptions) instead of persistent
 subscriptions. Catch-up subscriptions serve the purpose of receiving events from a stream for a
